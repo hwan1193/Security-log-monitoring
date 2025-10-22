@@ -1,0 +1,91 @@
+사용법 요약
+
+Canary VM에서 관리자 PowerShell로 저장한 스크립트 실행.
+
+여러 서버를 스캔하려면 -ComputerList 매개변수에 호스트명/파일 경로(한 줄에 하나) 지정(PSRemoting 필요).
+
+결과는 C:\secure_backup\<hostname>_scan_<yyyyMMdd_HHmmss>\ 에 CSV, txt로 저장됨.
+
+원격 대량 배포 팁: PSRemoting(WinRM)이 활성화되어 있으면 위 스크립트를 대상 서버에 복사하고 Invoke-Command로 실행하면 됩니다. 운영팀 권한 필요. (스크립트 내부에서도 원격 복사 방식 제공)
+
+7-Zip 설치: 내부 검사( JndiLookup.class )가 중요하므로 Canary에 7-Zip을 설치해 두세요. 설치 필요하면 choco install 7zip -y (Chocolatey 필요) 또는 7-Zip MSI/EXE 수동 설치.
+
+출력 위치: C:\secure_backup\<hostname>_scan_<ts>\ 에 다음 파일 생성
+
+log4j_candidates.csv — 탐지된 아카이브 목록(+ContainsJndiLookup 컬럼)
+
+java_versions.csv — Java/JRE 버전 및 경로 정보
+
+summary.json — 요약
+
+scan_log.txt — 작업 로그
+
+후속: ContainsJndiLookup가 TRUE로 표시된 항목은 최우선으로 개발팀에 전달해 패치(라이브러리 교체) 또는 긴급 완화(서버 JVM 옵션 추가) 적용 요청하세요.
+
+====================================================================================================
+
+1) 결과 폴더 확인
+
+# 결과 폴더 열기
+$folder = Get-ChildItem C:\secure_backup | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+explorer $folder.FullName
+
+# 또는 경로
+C:\secure_backup\TXTEST-01_scan_20251021_152754
+
+# 폴더 안에 다음 파일들이 있어야 정상
+
+log4j_candidates.csv → 찾아낸 .jar/.war/.ear 목록 + ContainsJndiLookup 컬럼(7z 검사 했으면)
+java_versions.csv → 서버에서 발견한 Java/JRE 정보
+scan_log.txt → 검사 과정 로그(오류·진행 상황 기록)
+summary.json → 요약 정보
+
+# 취약 후보만 빠르게 확인
+$dir = "C:\secure_backup\TXTEST-01_scan_20251021_152754"
+Import-Csv (Join-Path $dir "log4j_candidates.csv") | Where-Object { $_.ContainsJndiLookup -eq "True" } | Select-Object FullName, LastWriteTime
+
+출력 결과가 있으면 JndiLookup.class 를 포함한 취약 JAR입니다 → 우선 처리 대상.
+
+# 만약 ContainsJndiLookup 컬럼이 없거나 모두 False라면:
+
+- 7-Zip이 설치되지 않아서 내부검사를 못했거나,
+
+- 점검 결과 JndiLookup이 발견되지 않은 것임.
+
+# 7-Zip 여부 확인:
+
+Get-Command 7z.exe -ErrorAction SilentlyContinue | Select-Object Path
+
+# Java/Oracle JRE 정보 확인
+
+Get-Content (Join-Path $dir "scan_log.txt") -Tail 200
+
+- 검사 중 읽기 권한 실패, 파일 시스템 접근 오류 등이 기록되어 있으면 운영팀에 공유하세요(스캔 누락 가능).
+
+# 다음 즉시 조치 우선순위 (만약 JndiLookup 발견 시)
+
+1. 즉각(긴급) : 해당 JAR가 어떤 서비스(앱)에서 사용되는지 파악해서 개발팀에 할당. (파일 경로 → 서비스/앱 소유자)
+2. 임시 완화(보안팀·개발 협업) : 해당 앱의 시작 파라미터에 아래 JVM 옵션 추가(애플리케이션 재시작 필요):
+-Dlog4j2.formatMsgNoLookups=true
+-Dcom.sun.jndi.object.trustURLCodebase=false
+(먼저 테스트)
+
+3. 근본 해결(개발팀) : Log4j를 안전한 버전으로 교체하고 앱 재빌드·배포(권장).
+4. 검증 : 패치/완화 후 동일 스크립트로 재스캔해서 ContainsJndiLookup이 모두 False인지 확인.
+
+※ 요약 : 지금 보안팀이 할 일 !!!
+
+1. 결과 폴더 열어 log4j_candidates.csv 확인
+
+2. 아래 명령으로 JndiLookup 포함 항목 조회:
+Import-Csv C:\secure_backup\TXTEST-01_scan_20251021_152754\log4j_candidates.csv |
+  Where-Object { $_.ContainsJndiLookup -eq "True" } |
+  Select FullName, DirectoryName
+
+3. 결과(파일경로 목록) → 개발팀에게 즉시 전달
+4. 개발팀과 협의해 Canary에서 JVM 옵션 적용 또는 JndiLookup 제거 테스트
+
+
+
+
+
