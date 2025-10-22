@@ -31,6 +31,13 @@ Teams/Slack Webhook으로 자동 알림을 전송한다.
 ## 사용 예시
 
 ``` powershell
+
+# 기본 실행 시 (전체로 불려옴)
+.\Detect-Log4j-And-Java.ps1
+
+# 로컬에서 명시적으로 현재 호스트로 실행
+.\Detect-Log4j-And-Java.ps1 -ComputerList @($env:COMPUTERNAME)
+
 # Log4j & Java 탐지
 .\Detect-Log4j-And-Java.ps1 -ScanPath "C:\inetpub\wwwroot" -OutFile "log4j_scan_$(Get-Date -Format yyyyMMdd).csv"
 
