@@ -1,7 +1,7 @@
 # Security-log-monitoring-Automation
 Security Log Monitoring &amp; Alert Automation
 
-PowerShell 기반 서버 보안 로그 감시 및 취약점 탐지 자동화 스크립트이다. (Apachi, Java, Oracle 등)
+PowerShell 기반 서버 보안 로그 감시 및 취약점 탐지 자동화 스크립트이다. (Apache, Java, Oracle 등)
 운영 환경에서 주기적으로 실행되어 보안 위협 및 이상 트래픽을 탐지하고,
 Teams/Slack Webhook으로 자동 알림을 전송한다.
 
