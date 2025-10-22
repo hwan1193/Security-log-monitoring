@@ -1,12 +1,36 @@
-# Security-log-monitoring
+# Security-log-monitoring-Automation
 Security Log Monitoring &amp; Alert Automation
 
-본 리포지토리는 운영 서버에서 발생하는 주요 보안/운영 이벤트를 자동으로 탐지하고,
-Teams 또는 Slack Webhook으로 알림을 전송하기 위한 스크립트 및 탐지 규칙을 포함한다.
+PowerShell 기반 서버 보안 로그 감시 및 취약점 탐지 자동화 스크립트이다. (Apachi, Java, Oracle 등)
+운영 환경에서 주기적으로 실행되어 보안 위협 및 이상 트래픽을 탐지하고,
+Teams/Slack Webhook으로 자동 알림을 전송한다.
 
 ---
 
-## Overview
+## 요구사항
+- Windows Server (PowerShell 접근 가능한 환경)
+- PowerShell 5.1 이상 (PowerShell 7 권장)
+- 대상 서버에 PSRemoting(WinRM) 활성화 시 다중 서버 원격 실행 가능
+- 내부 검사 (클래스 파일 열람)를 위해 Canary에 7-zip 설치 권장
+  설치 예시 : choco install 7zip -y (chocolatey 필요)
 
-- DB 타임아웃 ('Execution Timeout Expired') 감지 및 재시도 제한
-- 
+---
+
+## 설치 및 준비
+1. Canary VM 스크립트 복사.
+2. 7-zip 필요 시 설치
+3. 운영팀 권한으로 원격 배포/실행 권한 확보.
+
+---
+
+### 사용법 요약
+관리자 권한으로 PowerShell에서 실행.
+
+---
+
+## 사용 예시
+
+``` powershell
+# Log4j & Java 탐지
+.\Detect-Log4j-And-Java.ps1 -ScanPath "C:\inetpub\wwwroot" -OutFile "log4j_scan_$(Get-Date -Format yyyyMMdd).csv"
+
